@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import GoogleSignInButton from './google-sign-in-button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Bookmark, CheckCircle2, Zap, Shield } from 'lucide-react'
+import { Bookmark, CheckCircle2, Zap, Shield, PlayCircle } from 'lucide-react'
 
 export default async function LoginPage() {
     const supabase = await createClient()
@@ -99,6 +99,18 @@ export default async function LoginPage() {
                                     Trusted by developers
                                 </span>
                             </div>
+                        </div>
+
+                        <div className="flex justify-center">
+                            <a
+                                href="https://www.loom.com/share/d412ec179f9f45b3b660f9d10089f0db"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-indigo-500 transition-colors duration-200"
+                            >
+                                <PlayCircle className="w-4 h-4" />
+                                <span>Watch 1-min Demo</span>
+                            </a>
                         </div>
 
                         <p className="px-8 text-center text-xs text-muted-foreground">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { deleteBookmark, toggleFavorite } from '@/app/actions/bookmark-actions'
 import { toast } from 'sonner'
 import type { Bookmark } from '@/types/bookmark.types'
@@ -25,6 +25,11 @@ export default function BookmarkItem({ bookmark }: BookmarkItemProps) {
     const [isOptimisticallyDeleted, setIsOptimisticallyDeleted] = useState(false)
     const [isFavorite, setIsFavorite] = useState(bookmark.is_favorite || false)
     const [isEditOpen, setIsEditOpen] = useState(false)
+
+    // Sync state with props when real-time updates occur
+    useEffect(() => {
+        setIsFavorite(bookmark.is_favorite || false)
+    }, [bookmark.is_favorite])
 
     const handleDelete = () => {
         setIsOptimisticallyDeleted(true)
