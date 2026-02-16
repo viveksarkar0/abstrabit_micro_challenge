@@ -9,14 +9,31 @@ A modern, secure bookmark management application built with Next.js 14, Supabase
 
 ## ✨ Features
 
+### Core Functionality
 - 🔐 **Google OAuth Authentication** - Secure sign-in with Google
+- 📝 **Create & Delete Bookmarks** - Intuitive bookmark management
+- ✏️ **Edit Bookmarks** - Update title, URL, and collection via elegant dialog
 - 🔒 **Row Level Security** - Your bookmarks are completely private
-- ⚡ **Real-time Sync** - Changes appear instantly across all tabs
-- 🎨 **Premium UI** - Built with Shadcn UI components
-- 📱 **Responsive Design** - Works beautifully on all devices
+- ⚡ **Real-time Sync** - Changes appear instantly across all tabs (verified working!)
+
+### Organization & Discovery
+- ⭐ **Favorites** - Mark important bookmarks with heart icon
+- 📁 **Collections** - Organize bookmarks with custom tags/collections
+- 📄 **Dedicated Pages** - Separate views for Favorites and Collections
+- 🔍 **Smart Grouping** - Collections page auto-groups by tag
+
+### User Experience
+- 🎨 **Premium "Big Tech" UI** - Professional design with Shadcn UI
+- 📱 **Fully Responsive** - Seamless experience on all devices
+- 🎭 **Framer Motion Animations** - Smooth, polished interactions
+- 🌙 **Dark Mode Support** - Easy on the eyes
+- 🔔 **Toast Notifications** - Clear feedback for all actions
+
+### Technical Excellence
 - ⚡ **Server Components** - Optimized performance with Next.js 14
 - 🎯 **Type-Safe** - Full TypeScript coverage
-- 🚀 **Production Ready** - Deployable to Vercel instantly
+- 🚀 **Production Ready** - Build and deploy to Vercel instantly
+- 🔄 **Automatic Favicon Fetching** - Visual bookmark identification
 
 ## 🏗️ Architecture Overview
 
@@ -121,32 +138,41 @@ Visit [http://localhost:3000](http://localhost:3000)
 ```
 ├── app/
 │   ├── actions/
-│   │   └── bookmark-actions.ts      # Server Actions for CRUD
+│   │   └── bookmark-actions.ts      # Server Actions (create, delete, update, toggleFavorite)
 │   ├── auth/
 │   │   └── callback/
 │   │       └── route.ts              # OAuth callback handler
 │   ├── login/
 │   │   ├── page.tsx                  # Login page
 │   │   └── google-sign-in-button.tsx # Google OAuth button
+│   ├── favorites/
+│   │   └── page.tsx                  # Favorites-only view
+│   ├── collections/
+│   │   └── page.tsx                  # Collections grouped view
 │   ├── page.tsx                      # Main dashboard (Server Component)
-│   ├── layout.tsx                    # Root layout
-│   └── globals.css                   # Global styles + Shadcn theme
+│   ├── layout.tsx                    # Root layout with DashboardLayout
+│   └── globals.css                   # Global styles + Tailwind CSS v4
 │
 ├── components/
 │   ├── bookmarks/
 │   │   ├── bookmark-form.tsx         # Create bookmark form
-│   │   ├── bookmark-list.tsx         # List with realtime updates
-│   │   └── bookmark-item.tsx         # Individual bookmark card
+│   │   ├── bookmark-list.tsx         # List with realtime subscriptions
+│   │   ├── bookmark-item.tsx         # Card with favorite/edit/delete
+│   │   └── edit-bookmark-dialog.tsx  # Edit bookmark dialog
+│   ├── layout/
+│   │   ├── dashboard-layout.tsx      # Dashboard wrapper
+│   │   └── sidebar.tsx               # Navigation sidebar
 │   ├── ui/                           # Shadcn UI components
 │   ├── user-menu.tsx                 # User dropdown menu
-│   └── providers.tsx                 # Toast provider
+│   └── providers.tsx                 # Toast provider (Sonner)
 │
 ├── lib/
 │   ├── supabase/
-│   │   ├── client.ts                 # Browser Supabase client
+│   │   ├── client.ts                 # Singleton browser client
 │   │   └── server.ts                 # Server Supabase client
-│   └── auth/
-│       └── helpers.ts                # Auth utility functions
+│   ├── auth/
+│   │   └── helpers.ts                # Auth utility functions
+│   └── events.ts                     # Custom event constants
 │
 ├── types/
 │   ├── database.types.ts             # Database schema types
@@ -198,28 +224,76 @@ USING (auth.uid() = user_id);
 
 ## ⚡ Real-time Implementation
 
-Bookmarks update instantly across all browser tabs using Supabase Realtime:
+### ✅ Verified Working!
 
-```typescript
-// Subscribe to changes filtered by user_id
-const channel = supabase
-  .channel('bookmarks-changes')
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'bookmarks',
-    filter: `user_id=eq.${userId}`
-  }, (payload) => {
-    // Update local state based on event type
-  })
-  .subscribe()
+Bookmarks update **instantly** across all browser tabs using Supabase Realtime. When you add, edit, favorite, or delete a bookmark in one tab, it appears immediately in all other tabs without any manual refresh.
+
+**Test Evidence:**
+```
+[Realtime] ✅ Received update: INSERT
+[Realtime] ✅ Received update: DELETE  
+[Realtime] ✅ Received update: UPDATE
 ```
 
-**How it works:**
-1. Supabase listens to Postgres WAL (Write-Ahead Log)
-2. Broadcasts changes to subscribed clients via WebSocket
-3. Client receives events and updates UI
-4. Subscription automatically filters by current user
+### Implementation Details
+
+```typescript
+// Singleton client for shared WebSocket connection
+const supabase = createClient() // Reuses same instance
+
+// Unique channel per component instance
+const channelName = `bookmarks-${userId}-${randomId}`
+
+const channel = supabase
+  .channel(channelName)
+  .on('postgres_changes', {
+    event: '*',           // INSERT, UPDATE, DELETE
+    schema: 'public',
+    table: 'bookmarks',
+    filter: `user_id=eq.${userId}`  // Only your bookmarks
+  }, (payload) => {
+    // Update local state instantly
+    if (payload.eventType === 'INSERT') {
+      setBookmarks(current => [payload.new, ...current])
+    }
+    // ... handle UPDATE and DELETE
+  })
+  .subscribe((status) => {
+    console.log('[Realtime] Subscription status:', status)
+  })
+```
+
+### How it Works
+
+1. **PostgreSQL Configuration**: `REPLICA IDENTITY FULL` on bookmarks table
+2. **Supabase Publication**: `bookmarks` table enabled in `supabase_realtime`
+3. **WAL Streaming**: Postgres writes changes to Write-Ahead Log
+4. **WebSocket Broadcast**: Supabase reads WAL and pushes to all subscribed clients
+5. **Client Updates**: React state updates trigger instant UI refresh
+6. **RLS Filtering**: Only events matching user's RLS policies are received
+
+### Critical Configuration
+
+**Database Setup Required:**
+```sql
+-- Enable realtime broadcasting with full row data
+ALTER TABLE bookmarks REPLICA IDENTITY FULL;
+
+-- Add table to realtime publication (or use Supabase UI)
+ALTER publication supabase_realtime ADD TABLE bookmarks;
+```
+
+**Singleton Client Pattern:**
+```typescript
+// lib/supabase/client.ts
+let client: SupabaseClient | undefined
+
+export function createClient() {
+  if (client) return client  // Reuse existing instance
+  client = createBrowserClient(...)
+  return client
+}
+```
 
 ## 🚀 Deployment to Vercel
 
@@ -288,13 +362,17 @@ vercel --prod
 ## 🔮 Future Improvements
 
 ### Features
-- [ ] Bookmark folders/tags
-- [ ] Full-text search
-- [ ] Browser extension
+- [x] ~~Bookmark tags/collections~~ ✅ Implemented
+- [x] ~~Favorite bookmarks~~ ✅ Implemented
+- [x] ~~Edit bookmarks~~ ✅ Implemented
+- [ ] Full-text search across title/URL
+- [ ] Browser extension for quick saves
 - [ ] Bookmark sharing (with permission system)
-- [ ] URL preview cards with OpenGraph data
-- [ ] Bulk import/export
-- [ ] Archive/favorite bookmarks
+- [ ] URL preview cards with OpenGraph metadata
+- [ ] Bulk import from browser/CSV
+- [ ] Bulk export to JSON/HTML
+- [ ] Archive bookmarks (soft delete)
+- [ ] Drag-and-drop reordering for favorites
 
 ### Technical
 - [ ] Add E2E tests with Playwright
@@ -319,9 +397,11 @@ vercel --prod
 - Verify Supabase anon key is correct
 
 ### Realtime not working
-- Check browser console for WebSocket errors
+- **Run this SQL**: `ALTER TABLE bookmarks REPLICA IDENTITY FULL;`
+- **Enable in Supabase UI**: Database → Publications → `supabase_realtime` → Toggle ON for `bookmarks`
+- Check browser console for `[Realtime] Subscription status: SUBSCRIBED`
 - Verify RLS policies allow SELECT on bookmarks table
-- Ensure user_id filter matches authenticated user
+- Hard refresh both tabs (Cmd/Ctrl + Shift + R) after configuration changes
 
 ### OAuth redirect fails
 - Verify redirect URI in Google Cloud Console matches Supabase callback URL

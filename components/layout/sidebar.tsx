@@ -96,8 +96,8 @@ export function Sidebar({ user }: { user: any }) {
                 )}
             >
                 {/* Header */}
-                <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-                    <div className="flex items-center gap-3 overflow-hidden">
+                <div className="h-16 flex items-center px-4 border-b border-border relative">
+                    <div className={cn("flex items-center gap-3 overflow-hidden w-full", !expanded && "justify-center")}>
                         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
                             <svg
                                 viewBox="0 0 24 24"
@@ -109,29 +109,38 @@ export function Sidebar({ user }: { user: any }) {
                                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
                             </svg>
                         </div>
-                        {expanded && (
-                            <motion.span
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="font-bold text-lg whitespace-nowrap"
-                            >
-                                SmartMarks
-                            </motion.span>
-                        )}
+                        <AnimatePresence>
+                            {expanded && (
+                                <motion.span
+                                    initial={{ opacity: 0, width: 0 }}
+                                    animate={{ opacity: 1, width: 'auto' }}
+                                    exit={{ opacity: 0, width: 0 }}
+                                    className="font-bold text-lg whitespace-nowrap overflow-hidden"
+                                >
+                                    SmartMarks
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
                     </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setExpanded(!expanded)}
-                        className="hidden lg:flex shrink-0"
-                    >
-                        {expanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-                    </Button>
+
+                    {/* Desktop Toggle Button - Absolute Positioned */}
+                    <div className="absolute -right-3 top-6 hidden lg:flex z-50">
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            onClick={() => setExpanded(!expanded)}
+                            className="h-6 w-6 rounded-full border border-border shadow-md p-0 hover:bg-muted"
+                        >
+                            {expanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+                        </Button>
+                    </div>
+
+                    {/* Mobile Close Button */}
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setIsMobileOpen(false)}
-                        className="lg:hidden"
+                        className="lg:hidden ml-auto"
                     >
                         <X size={20} />
                     </Button>
