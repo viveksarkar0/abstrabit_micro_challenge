@@ -7,6 +7,8 @@ A modern, secure bookmark management application built with Next.js 14, Supabase
 ![Supabase](https://img.shields.io/badge/Supabase-Powered-green?logo=supabase)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?logo=tailwind-css)
 
+🎥 **Watch 1-min Demo:** [Click here to watch on Loom](https://www.loom.com/share/d412ec179f9f45b3b660f9d10089f0db)
+
 ## ✨ Features
 
 ### Core Functionality
@@ -358,6 +360,32 @@ vercel --prod
 | Realtime for all changes | Instant sync | Slightly higher resource usage |
 | Optimistic deletes | Instant feedback | Requires rollback logic |
 | Server Components | Better performance, SEO | More complex data flow |
+
+## 💡 Challenges & Solutions
+
+During the development of this application, several technical challenges were encountered and solved:
+
+### 1. Real-time Synchronization across Tabs
+**Challenge:** Keeping the UI in sync across multiple tabs/windows without manual refreshes or polling, while respecting Row Level Security.
+**Solution:** 
+- Implemented a singleton Supabase client pattern to manage WebSocket connections efficiently.
+- Utilized Supabase's `postgres_changes` event with specific filters (`user_id=eq.${userId}`) to only listen for relevant changes.
+- Enabled `REPLICA IDENTITY FULL` on the `bookmarks` table to ensure the `DELETE` events carry enough information (specifically the `id`) to update the client state correctly.
+- **Critical Fix:** Discovered that `BookmarkItem` component state wasn't syncing with props on real-time updates. Implemented `useEffect` to synchronize local `isFavorite` state with incoming prop changes, ensuring favorite toggles from other tabs reflect instantly.
+- debugged using `console.log` to trace event payloads and confirm that `INSERT`, `UPDATE`, and `DELETE` events were propagating correctly.
+
+### 2. Authentication State Persistence
+**Challenge:** Ensuring the user stays logged in across page reloads and navigating between routes, especially with server-side rendering.
+**Solution:**
+- Implemented a robust `middleware.ts` that refreshes the Auth session on every request.
+- Used `createServerClient` in Server Components and `createBrowserClient` in Client Components to handle cookies correctly in both environments.
+- Handled the OAuth callback flow in `app/auth/callback/route.ts` to exchange the code for a session immediately after Google sign-in.
+
+### 3. Hydration Mishaps with Theme
+**Challenge:** Prevent flash of unstyled content (FOUC) or theme mismatch (light/dark) on initial load.
+**Solution:**
+- Integrated `next-themes` with the `ThemeProvider` to handle system preference detection and persistence.
+- Used `suppressHydrationWarning` on the `html` tag to silence inevitable warnings when the server-rendered HTML differs slightly from the client's initial render due to theme attributes.
 
 ## 🔮 Future Improvements
 
