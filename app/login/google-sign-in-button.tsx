@@ -18,8 +18,7 @@ export default function GoogleSignInButton() {
 
             const supabase = createClient()
 
-            const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-
+            const origin = process.env.NEXT_PUBLIC_SITE_URL 
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
